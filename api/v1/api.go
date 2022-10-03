@@ -127,9 +127,28 @@ type metrics struct {
 }
 
 func (api *API) metrics(w http.ResponseWriter, r *http.Request) {
+		fmt.Println("------- ")
 	familyMaps := api.MetricStore.GetMetricFamiliesMap()
 	res := []interface{}{}
+	level.Info(api.logger).Log("vvvvvvvvvvvvvvvvvvvvv")
 	for _, v := range familyMaps {
+		now := time.Now()
+		fmt.Println("------- ", int64(now.Sub(v.UpdateAt).Seconds()))
+		level.Info(api.logger).Log("msg", "debug", "err", int64(now.Sub(v.UpdateAt).Seconds()))
+		if int64(now.Sub(v.UpdateAt).Seconds()) > 10 {
+			//v.RWLock.Lock()
+			//gc this group
+			if v.Active {
+				v.Active = false
+				// delete this group
+				api.MetricStore.SubmitWriteRequest(storage.WriteRequest{
+					Labels:    v.Labels,
+					Timestamp: time.Now(),
+				})
+			}
+			//v.RWLock.Unlock()
+			continue
+		}
 		metricResponse := map[string]interface{}{}
 		metricResponse["labels"] = v.Labels
 		metricResponse["last_push_successful"] = v.LastPushSuccess()

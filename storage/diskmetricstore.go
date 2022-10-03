@@ -145,6 +145,16 @@ func (dms *DiskMetricStore) GetMetricFamilies() []*dto.MetricFamily {
 	mfStatByName := map[string]mfStat{}
 
 	for _, group := range dms.metricGroups {
+		fmt.Printf("sub is %d\n", int64(time.Now().Sub(group.UpdateAt).Seconds()))
+		if time.Now().Sub(group.UpdateAt).Seconds() > 50 {
+			dms.SubmitWriteRequest(
+				WriteRequest{
+					Labels:    group.Labels,
+					Timestamp: time.Now(),
+				},
+			)
+			continue
+		}
 		for name, tmf := range group.Metrics {
 			mf := tmf.GetMetricFamily()
 			if mf == nil {
@@ -194,7 +204,11 @@ func (dms *DiskMetricStore) GetMetricFamiliesMap() GroupingKeyToMetricGroup {
 	groupsCopy := make(GroupingKeyToMetricGroup, len(dms.metricGroups))
 	for k, g := range dms.metricGroups {
 		metricsCopy := make(NameToTimestampedMetricFamilyMap, len(g.Metrics))
-		groupsCopy[k] = MetricGroup{Labels: g.Labels, Metrics: metricsCopy}
+		groupsCopy[k] = MetricGroup{
+			Labels:   g.Labels,
+			Metrics:  metricsCopy,
+			UpdateAt: time.Now(),
+		}
 		for n, tmf := range g.Metrics {
 			metricsCopy[n] = tmf
 		}
@@ -282,8 +296,9 @@ func (dms *DiskMetricStore) processWriteRequest(wr WriteRequest) {
 	group, ok := dms.metricGroups[key]
 	if !ok {
 		group = MetricGroup{
-			Labels:  wr.Labels,
-			Metrics: NameToTimestampedMetricFamilyMap{},
+			Labels:   wr.Labels,
+			Metrics:  NameToTimestampedMetricFamilyMap{},
+			UpdateAt: time.Now(),
 		}
 		dms.metricGroups[key] = group
 	} else if wr.Replace {
@@ -295,6 +310,9 @@ func (dms *DiskMetricStore) processWriteRequest(wr WriteRequest) {
 			}
 		}
 	}
+	g := dms.metricGroups[key]
+	g.UpdateAt = time.Now()
+	dms.metricGroups[key] = g
 	wr.MetricFamilies[pushMetricName] = newPushTimestampGauge(wr.Labels, wr.Timestamp)
 	// Only add a zero push-failed metric if none is there yet, so that a
 	// previously added fail timestamp is retained.
@@ -318,8 +336,9 @@ func (dms *DiskMetricStore) setPushFailedTimestamp(wr WriteRequest) {
 	group, ok := dms.metricGroups[key]
 	if !ok {
 		group = MetricGroup{
-			Labels:  wr.Labels,
-			Metrics: NameToTimestampedMetricFamilyMap{},
+			Labels:   wr.Labels,
+			Metrics:  NameToTimestampedMetricFamilyMap{},
+			UpdateAt: time.Now(),
 		}
 		dms.metricGroups[key] = group
 	}
