@@ -88,6 +88,7 @@ func main() {
 		persistenceFile     = app.Flag("persistence.file", "File to persist metrics. If empty, metrics are only kept in memory.").Default("").String()
 		persistenceInterval = app.Flag("persistence.interval", "The minimum interval at which to write out the persistence file.").Default("5m").Duration()
 		pushUnchecked       = app.Flag("push.disable-consistency-check", "Do not check consistency of pushed metrics. DANGEROUS.").Default("false").Bool()
+		persistenceTTL      = app.Flag("persistence.ttl", "TTL for metrics.").Default("60s").Duration()
 		promlogConfig       = promlog.Config{}
 	)
 	promlogflag.AddFlags(app, &promlogConfig)
@@ -99,7 +100,7 @@ func main() {
 	*routePrefix = computeRoutePrefix(*routePrefix, *externalURL)
 	externalPathPrefix := computeRoutePrefix("", *externalURL)
 
-	level.Info(logger).Log("msg", "starting pushgateway", "version", version.Info())
+	level.Info(logger).Log("msg", "starting pushgateway!!!!!!!!1", "version", version.Info())
 	level.Info(logger).Log("build_context", version.BuildContext())
 	level.Debug(logger).Log("msg", "external URL", "url", *externalURL)
 	level.Debug(logger).Log("msg", "path prefix used externally", "path", externalPathPrefix)
@@ -115,7 +116,7 @@ func main() {
 		}
 	}
 
-	ms := storage.NewDiskMetricStore(*persistenceFile, *persistenceInterval, prometheus.DefaultGatherer, logger)
+	ms := storage.NewDiskMetricStore(*persistenceFile, *persistenceInterval, *persistenceTTL, prometheus.DefaultGatherer, logger)
 
 	// Create a Gatherer combining the DefaultGatherer and the metrics from the metric store.
 	g := prometheus.Gatherers{

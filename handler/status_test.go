@@ -33,7 +33,7 @@ func TestPathPrefixPresenceInPage(t *testing.T) {
 	}
 	pathPrefix := "/foobar"
 
-	ms := storage.NewDiskMetricStore("", time.Minute, nil, logger)
+	ms := storage.NewDiskMetricStore("", time.Minute, 60*time.Minute, nil, logger)
 	status := Status(ms, asset.Assets, flags, pathPrefix, logger)
 	defer ms.Shutdown()
 

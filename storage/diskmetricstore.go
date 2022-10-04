@@ -56,6 +56,7 @@ type DiskMetricStore struct {
 	persistenceFile string
 	predefinedHelp  map[string]string
 	logger          log.Logger
+	persistenceTTL  time.Duration
 }
 
 type mfStat struct {
@@ -79,6 +80,7 @@ type mfStat struct {
 func NewDiskMetricStore(
 	persistenceFile string,
 	persistenceInterval time.Duration,
+	persistenceTTL time.Duration,
 	gatherPredefinedHelpFrom prometheus.Gatherer,
 	logger log.Logger,
 ) *DiskMetricStore {
@@ -90,6 +92,7 @@ func NewDiskMetricStore(
 		done:            make(chan error),
 		metricGroups:    GroupingKeyToMetricGroup{},
 		persistenceFile: persistenceFile,
+		persistenceTTL:  persistenceTTL,
 		logger:          logger,
 	}
 	if err := dms.restore(); err != nil {
@@ -145,15 +148,16 @@ func (dms *DiskMetricStore) GetMetricFamilies() []*dto.MetricFamily {
 	mfStatByName := map[string]mfStat{}
 
 	for _, group := range dms.metricGroups {
-		fmt.Printf("sub is %d\n", int64(time.Now().Sub(group.UpdateAt).Seconds()))
-		if time.Now().Sub(group.UpdateAt).Seconds() > 50 {
-			dms.SubmitWriteRequest(
-				WriteRequest{
-					Labels:    group.Labels,
-					Timestamp: time.Now(),
-				},
-			)
-			continue
+		if dms.persistenceTTL.Seconds() > 0 {
+			if time.Now().Sub(group.UpdateAt).Seconds() > dms.persistenceTTL.Seconds() {
+				dms.SubmitWriteRequest(
+					WriteRequest{
+						Labels:    group.Labels,
+						Timestamp: time.Now(),
+					},
+				)
+				continue
+			}
 		}
 		for name, tmf := range group.Metrics {
 			mf := tmf.GetMetricFamily()
