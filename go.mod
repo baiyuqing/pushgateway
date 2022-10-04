@@ -37,4 +37,4 @@ require (
 
 go 1.17
 
-replace github.com/prometheus/pushgateway v1.4.3 => github.com/baiyuqing/pushgateway latest
+replace github.com/prometheus/pushgateway v1.4.3 => github.com/baiyuqing/pushgateway v0.0.0-20221004043014-73a5ff3ada9b
