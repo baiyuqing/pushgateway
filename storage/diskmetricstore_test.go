@@ -571,8 +571,9 @@ func addGroup(
 	metrics NameToTimestampedMetricFamilyMap,
 ) {
 	mg[groupingKeyFor(groupingLabels)] = MetricGroup{
-		Labels:  groupingLabels,
-		Metrics: metrics,
+		Labels:   groupingLabels,
+		Metrics:  metrics,
+		UpdateAt: time.Now(),
 	}
 }
 
