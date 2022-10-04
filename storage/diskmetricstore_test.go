@@ -571,8 +571,9 @@ func addGroup(
 	metrics NameToTimestampedMetricFamilyMap,
 ) {
 	mg[groupingKeyFor(groupingLabels)] = MetricGroup{
-		Labels:  groupingLabels,
-		Metrics: metrics,
+		Labels:   groupingLabels,
+		Metrics:  metrics,
+		UpdateAt: time.Now(),
 	}
 }
 
@@ -670,7 +671,7 @@ func TestAddDeletePersistRestore(t *testing.T) {
 	}
 	defer os.RemoveAll(tempDir)
 	fileName := path.Join(tempDir, "persistence")
-	dms := NewDiskMetricStore(fileName, 100*time.Millisecond, nil, logger)
+	dms := NewDiskMetricStore(fileName, 100*time.Millisecond, 60*time.Minute, nil, logger)
 
 	// Submit a single simple metric family.
 	ts1 := time.Now()
@@ -783,7 +784,7 @@ func TestAddDeletePersistRestore(t *testing.T) {
 	}
 
 	// Load it again.
-	dms = NewDiskMetricStore(fileName, 100*time.Millisecond, nil, logger)
+	dms = NewDiskMetricStore(fileName, 100*time.Millisecond, 60*time.Minute, nil, logger)
 	if err := checkMetricFamilies(
 		dms, mf1a, mf2, mf3, mf5,
 		pushTimestamp, pushFailedTimestamp,
@@ -947,7 +948,7 @@ func TestAddDeletePersistRestore(t *testing.T) {
 }
 
 func TestNoPersistence(t *testing.T) {
-	dms := NewDiskMetricStore("", 100*time.Millisecond, nil, logger)
+	dms := NewDiskMetricStore("", 100*time.Millisecond, 60*time.Minute, nil, logger)
 
 	ts1 := time.Now()
 	grouping1 := map[string]string{
@@ -977,7 +978,7 @@ func TestNoPersistence(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	dms = NewDiskMetricStore("", 100*time.Millisecond, nil, logger)
+	dms = NewDiskMetricStore("", 100*time.Millisecond, 60*time.Minute, nil, logger)
 	if err := checkMetricFamilies(dms); err != nil {
 		t.Error(err)
 	}
@@ -992,7 +993,7 @@ func TestNoPersistence(t *testing.T) {
 }
 
 func TestRejectTimestamps(t *testing.T) {
-	dms := NewDiskMetricStore("", 100*time.Millisecond, nil, logger)
+	dms := NewDiskMetricStore("", 100*time.Millisecond, 60*time.Minute, nil, logger)
 
 	ts1 := time.Now()
 	grouping1 := map[string]string{
@@ -1030,7 +1031,7 @@ func TestRejectTimestamps(t *testing.T) {
 }
 
 func TestRejectInconsistentPush(t *testing.T) {
-	dms := NewDiskMetricStore("", 100*time.Millisecond, nil, logger)
+	dms := NewDiskMetricStore("", 100*time.Millisecond, 60*time.Minute, nil, logger)
 
 	ts1 := time.Now()
 	grouping1 := map[string]string{
@@ -1114,7 +1115,7 @@ func TestRejectInconsistentPush(t *testing.T) {
 }
 
 func TestSanitizeLabels(t *testing.T) {
-	dms := NewDiskMetricStore("", 100*time.Millisecond, nil, logger)
+	dms := NewDiskMetricStore("", 100*time.Millisecond, 60*time.Minute, nil, logger)
 
 	// Push mf1c with the grouping matching mf1b, mf1b should end up in storage.
 	ts1 := time.Now()
@@ -1194,7 +1195,7 @@ func TestSanitizeLabels(t *testing.T) {
 }
 
 func TestReplace(t *testing.T) {
-	dms := NewDiskMetricStore("", 100*time.Millisecond, nil, logger)
+	dms := NewDiskMetricStore("", 100*time.Millisecond, 60*time.Minute, nil, logger)
 
 	// First do an invalid push to set pushFailedTimestamp and to later
 	// verify that it is retained and not replaced.
@@ -1333,7 +1334,7 @@ func TestGetMetricFamiliesMap(t *testing.T) {
 	defer os.RemoveAll(tempDir)
 	fileName := path.Join(tempDir, "persistence")
 
-	dms := NewDiskMetricStore(fileName, 100*time.Millisecond, nil, logger)
+	dms := NewDiskMetricStore(fileName, 100*time.Millisecond, 60*time.Minute, nil, logger)
 
 	labels1 := map[string]string{
 		"job":      "job1",
@@ -1405,7 +1406,7 @@ func TestGetMetricFamiliesMap(t *testing.T) {
 }
 
 func TestHelpStringFix(t *testing.T) {
-	dms := NewDiskMetricStore("", 100*time.Millisecond, prometheus.DefaultGatherer, logger)
+	dms := NewDiskMetricStore("", 100*time.Millisecond, 60*time.Minute, prometheus.DefaultGatherer, logger)
 
 	ts1 := time.Now()
 	errCh := make(chan error, 1)

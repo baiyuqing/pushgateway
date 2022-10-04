@@ -109,8 +109,11 @@ type GroupingKeyToMetricGroup map[string]MetricGroup
 
 // MetricGroup adds the grouping labels to a NameToTimestampedMetricFamilyMap.
 type MetricGroup struct {
-	Labels  map[string]string
-	Metrics NameToTimestampedMetricFamilyMap
+	//RWLock	sync.RWMutex
+	Labels   map[string]string
+	UpdateAt time.Time
+	Metrics  NameToTimestampedMetricFamilyMap
+	Active   bool
 }
 
 // SortedLabels returns the label names of the grouping labels sorted
